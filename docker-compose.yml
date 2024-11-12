@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  # User Service
+  user-service:
+    build: 
+      context: ./user-service
+      dockerfile: Dockerfile
+    image: user-service-image
+    ports:
+      - "5000:5000"
+    environment:
+      - POSTGRES_HOST=user-db
+      - POSTGRES_DB=${USER_DB_NAME}
+      - POSTGRES_USER=${USER_DB_USER}
+      - POSTGRES_PASSWORD=${USER_DB_PASSWORD}
+    depends_on:
+      - user-db
+    networks:
+      - shopease-network
+
+  user-db:
+    image: postgres:latest
+    environment:
+      - POSTGRES_DB=${USER_DB_NAME}
+      - POSTGRES_USER=${USER_DB_USER}
+      - POSTGRES_PASSWORD=${USER_DB_PASSWORD}
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    networks:
+      - shopease-network
+
+  # Product Service
+  product-service:
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile
+    image: product-service-image
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@product-db:27017/${MONGO_DB}
+    depends_on:
+      - product-db
+    networks:
+      - shopease-network
+
+  product-db:
+    image: mongo:latest
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_DB}
+    volumes:
+      - product-db-data:/data/db
+    networks:
+      - shopease-network
+
+  # Order Service
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    image: order-service-image
+    ports:
+      - "8081:8081"
+    environment:
+      - MYSQL_HOST=order-db
+      - MYSQL_DATABASE=${ORDER_DB_NAME}
+      - MYSQL_USER=${ORDER_DB_USER}
+      - MYSQL_PASSWORD=${ORDER_DB_PASSWORD}
+    depends_on:
+      - order-db
+    volumes:
+      - maven-repo:/root/.m2
+    networks:
+      - shopease-network
+
+  order-db:
+    image: mysql:latest
+    environment:
+      - MYSQL_DATABASE=${ORDER_DB_NAME}
+      - MYSQL_USER=${ORDER_DB_USER}
+      - MYSQL_PASSWORD=${ORDER_DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${ORDER_DB_ROOT_PASSWORD}
+    volumes:
+      - order-db-data:/var/lib/mysql
+    networks:
+      - shopease-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8083:80"  
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+    networks:
+      - shopease-network
+
+networks:
+  shopease-network:
+    driver: bridge
+
+volumes:
+  user-db-data:
+  product-db-data:
+  order-db-data:
+  maven-repo:

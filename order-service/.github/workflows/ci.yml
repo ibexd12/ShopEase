@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+      - feature/*
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: userdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      mongo:
+        image: mongo:4.4
+        ports:
+          - 27017:27017
+
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: orderdb
+        ports:
+          - 3306:3306
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies for User Service
+      working-directory: ./user-service
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run User Service Tests
+      working-directory: ./user-service
+      run: |
+        # Add your test command here (e.g., pytest)
+        echo "Running User Service tests..."
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install dependencies for Product Service
+      working-directory: ./product-service
+      run: npm install
+
+    - name: Run Product Service Tests
+      working-directory: ./product-service
+      run: |
+        # Add your test command here (e.g., npm test)
+        echo "Running Product Service tests..."
+
+    - name: Set up Java
+      uses: actions/setup-java@v2
+      with:
+        java-version: '11'
+        distribution: 'adopt'
+
+    - name: Build Order Service
+      working-directory: ./order-service
+      run: mvn clean package
+
+    - name: Run Order Service Tests
+      working-directory: ./order-service
+      run: |
+        # Add your test command here (e.g., mvn test)
+        echo "Running Order Service tests..."
+
+    - name: Build and Push Docker Images
+      run: |
+        docker build -t yourusername/user-service ./user-service
+        docker build -t yourusername/product-service ./product-service
+        docker build -t yourusername/order-service ./order-service
+        docker push yourusername/user-service
+        docker push yourusername/product-service
+        docker push yourusername/order-service
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}

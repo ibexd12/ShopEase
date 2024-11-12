@@ -1,0 +1,23 @@
+{
+  "name": "product-service",
+  "version": "1.0.0",
+  "description": "A simple Express-based product service",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",  
+    "test": "echo \"No tests specified\" && exit 1"  
+  },
+  "keywords": [
+    "express",
+    "product",
+    "service"
+  ],  
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1"  
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7" 
+  }
+}
